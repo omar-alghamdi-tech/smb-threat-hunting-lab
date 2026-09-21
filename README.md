@@ -14,7 +14,9 @@ The objective of this home lab exercise is to simulate a realistic brute-force a
 
 ### 1. Lab Setup
 The lab consists of an isolated VirtualBox network where the Kali Linux attacker machine can reach the Windows 10 victim machine.
-![Lab Setup](1.png.jpg)
+![Lab Setup]
+<img width="1791" height="875" alt="1" src="https://github.com/user-attachments/assets/3d5cc63a-20ec-4d47-a337-4b05eca000c8" />
+
 
 ### 2. Reconnaissance (Nmap)
 Before launching an attack, a thorough network scan was conducted to identify open ports and services. The scan revealed that port `445` (SMB) is open.
