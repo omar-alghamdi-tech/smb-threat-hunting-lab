@@ -23,5 +23,63 @@ The lab operates in an isolated environment where the Kali Linux attacker machin
 ### 2. Reconnaissance (Nmap)
 A comprehensive network scan was initiated to map the target's attack surface. The scan confirmed that port `445/tcp` (SMB) was open, presenting a potential entry point.
 
+
+<img width="1230" height="822" alt="2" src="https://github.com/user-attachments/assets/f835559b-634d-408b-a3a8-c4087f18d9a4" />
+
+
+3. Attack Obstacle: The Legacy Tool Failure (Hydra)
+An initial brute-force attempt was executed using Hydra. However, the attack failed entirely, resulting in an invalid reply error.
+
+💡 Analytical Insight (Why did Hydra fail?):
+Legacy tools like Hydra often struggle against modern Windows 10 endpoints. Windows 10 enforces strict SMB session management, disables SMBv1 by default, and requires modern NTLMv2 authentication. Hydra's parallel connection handling is incompatible with these updated security controls, making it ineffective for modern SMB brute-forcing.
+
+
+<img width="1166" height="687" alt="3" src="https://github.com/user-attachments/assets/85958260-047b-4a8f-a6aa-e8f49ab5e4ce" />
+
+
+4. Tactical Pivoting: Modern Exploitation (NetExec)
+To bypass the Windows 10 restrictions, the attack was pivoted to NetExec (nxc).
+
+💡 Analytical Insight (Why NetExec?):
+NetExec is a modern, stealthy framework built specifically for Active Directory and SMB environments. It natively supports SMBv2/v3, handles modern authentication seamlessly, and provides structured, operational output without crashing the target service.
+
+nxc smb 192.168.100.77 -u SOC_Victim -p passwords.txt
+
+<img width="1157" height="690" alt="4" src="https://github.com/user-attachments/assets/37541734-42e8-4be2-b0c4-a74f8ac5df04" />
+
+5. Successful Compromise
+Using the right tool for the job yielded immediate results. NetExec successfully brute-forced the SMB service and retrieved the valid credentials (Password123) for the target user SOC_Victim.
+
+<img width="1140" height="620" alt="5" src="https://github.com/user-attachments/assets/f2a677c9-8963-4da9-8515-f9e63a46a982" />
+
+
+🔵 Phase 2: Blue Team (Threat Hunting & Detection)
+1. Alert Triage & Log Analysis
+With the attack successfully executed, the perspective shifted to the Blue Team to hunt for the resulting Indicators of Compromise (IoCs). Advanced Audit Logon Policies were verified on the target machine.
+
+2. Identifying the Attack (Event ID 4625 & 4624)
+Filtering the Windows Security Logs revealed the complete attack sequence. A burst of Event ID 4625 (Audit Failure) confirmed the brute-force attempts, immediately followed by an Event ID 4624 (Audit Success), marking the exact moment the attacker breached the system.
+
+🚨 Key Forensic Artifacts Captured:
+
+TargetUserName: SOC_Victim (The compromised account)
+
+Logon Type: 3 (Network Logon - proving the attack came over the network via SMB)
+
+Source Network Address: 192.168.100.X (The Kali Linux Attacker IP)
+
+<img width="986" height="582" alt="6" src="https://github.com/user-attachments/assets/43fef3f9-7f48-42f1-b67d-11b3bbae8b94" />
+
+
+🛡️ Conclusion & Defensive Recommendations
+This simulation proves that while legacy tools fail against modern OS protections, attackers will rapidly pivot to sophisticated frameworks like NetExec.
+
+SOC Mitigation & Detection Strategy:
+
+SIEM Rule Creation: Configure SIEM alerts to trigger upon detecting a high velocity of Event ID 4625 originating from a single Source Network Address within a 1-minute window, followed by a 4624 for the same user.
+
+Account Lockout Policy: Enforce an account lockout threshold (e.g., 5 failed attempts) to kill brute-force attacks in their tracks.
+
+Network Segmentation: Block SMB (port 445) from external networks and restrict it internally only to authorized administrative subnets.
 ```bash
 sudo nmap -A -T4 192.168.100.77
